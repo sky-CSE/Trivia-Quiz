@@ -109,8 +109,7 @@ fun QuestionDisplay(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight()
-        , color = AppColors.mDarkPurple
+            .fillMaxHeight(), color = AppColors.mDarkPurple
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -171,7 +170,7 @@ fun QuestionDisplay(
                             },
                             modifier = Modifier.padding(start = 16.dp),
                             colors = RadioButtonDefaults.colors(
-                                
+
                                 selectedColor = if (correctAnswerState.value == true && index == answerState.value) {
                                     Color.Green.copy(alpha = 0.2f)
                                 } else {
@@ -179,9 +178,43 @@ fun QuestionDisplay(
                                 }
                             )
                         ) //end of radiobutton
-                        
-                        Text(text = choiceText, color = AppColors.mOffWhite)
-                    }
+
+                        Text(buildAnnotatedString {
+                            withStyle(
+                                style = SpanStyle(
+                                    fontWeight = FontWeight.Light,
+                                    color =
+                                    if (correctAnswerState.value == true && index == answerState.value) {
+                                        Color.Green
+                                    } else if (correctAnswerState.value == false && index == answerState.value) {
+                                        Color.Red
+                                    } else {
+                                        AppColors.mOffWhite
+                                    }
+                                )
+                            ) {
+                                append(text = choiceText)
+                            }
+                        }) //end of text
+                    }//end of row
+                }//end of choices
+
+                Button(
+                    onClick = { onNextClicked.invoke(questionIndex.value) },
+                    modifier = Modifier
+                        .padding(3.dp)
+                        .align(alignment = Alignment.CenterHorizontally),
+                    shape = RoundedCornerShape(34.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = AppColors.mLightBlue
+                    )
+                ) {
+                    Text(
+                        text = "Next",
+                        modifier = Modifier.padding(4.dp),
+                        color = AppColors.mOffWhite,
+                        fontSize = 17.sp
+                    )
                 }
             }
         }
