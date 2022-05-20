@@ -1,6 +1,7 @@
 package com.example.triviaquiz.di
 
 import com.example.triviaquiz.network.QuestionApi
+import com.example.triviaquiz.repository.QuestionRepository
 import com.example.triviaquiz.util.Constants
 import dagger.Module
 import dagger.Provides
@@ -16,11 +17,15 @@ object AppModule {
 
     @Singleton
     @Provides
-    fun provideQuestionApi() : QuestionApi {
+    fun provideQuestionApi(): QuestionApi {
         return Retrofit.Builder()
             .baseUrl(Constants.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(QuestionApi::class.java)
     }
+
+    @Singleton
+    @Provides
+    fun provideQuestionRepo(api: QuestionApi) = QuestionRepository(api)
 }
