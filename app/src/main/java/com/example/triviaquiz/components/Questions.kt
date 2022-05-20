@@ -22,6 +22,7 @@ import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -48,9 +49,8 @@ fun Questions(viewModel: QuestionViewModel) {
 
     //to select questions in order we have questionIndex
     val questionIndex = remember {
-        mutableStateOf(0)
+        mutableStateOf(1)
     }
-
 
     if (viewModel.data.value.loading == true) {
         CircularProgressIndicator()
@@ -91,16 +91,17 @@ fun QuestionDisplay(
         mutableStateOf<Int?>(null)
     }
 
+    //whether the answer selected is correct or not
     val correctAnswerState = remember(question) {
         mutableStateOf<Boolean?>(null)
     }
 
-    val updateAnswer: (Int) -> Unit = remember(question) {
+    val checkAnswerState: (Int) -> Unit = remember(question) {
         {
             answerState.value = it //it refers to 'selected answer's index'
 
-            //selected choice is answer of question
-            if (choicesState[it] == question.answer) {
+            //choicesState[idx] will give the string in that index
+            if (choicesState[it] == question.answer) { //question.answer gives correct ans in string
                 correctAnswerState.value = true
             } else {
                 correctAnswerState.value = false
@@ -108,6 +109,11 @@ fun QuestionDisplay(
         }
 
     }
+
+    val score = remember {
+        mutableStateOf(0)
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -120,13 +126,13 @@ fun QuestionDisplay(
         ) {
 
             //ELEMENT 0
-            if(questionIndex.value>= 3) ShowProgress(score = questionIndex.value)
+            ShowProgress(score, questionIndex.value)
 
             //ELEMENT 1
-            QuestionTracker(questionIndex.value,viewModel.getTotalQuestionCount())
+            QuestionTracker(questionIndex.value, viewModel.getTotalQuestionCount())
 
             //ELEMENT 2
-            val pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+            val pathEffect = PathEffect.dashPathEffect(floatArrayOf(50f, 50f), 0f)
             DrawDottedLine(pathEffect = pathEffect)
 
             //ELEMENT 3
@@ -172,17 +178,35 @@ fun QuestionDisplay(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
+                            //radiobutton is selected
+                            // when 'index' of current choice = idx of answer(choice) user selected
                             selected = (answerState.value == index),
                             onClick = {
-                                updateAnswer(index)
+                                checkAnswerState(index)
+
+                                //if answer is correct
+                                if (correctAnswerState.value == true) {
+                                    score.value += 1
+                                }
                             },
                             modifier = Modifier.padding(start = 16.dp),
                             colors = RadioButtonDefaults.colors(
-
-                                selectedColor = if (correctAnswerState.value == true && index == answerState.value) {
-                                    Color.Green.copy(alpha = 0.2f)
+                                selectedColor =
+                                //if answer is given right
+                                if (correctAnswerState.value == true) {
+                                    Color.Green.copy(alpha = 0.7f)
                                 } else {
-                                    Color.Red.copy(0.2f)
+                                    Color.Red.copy(0.7f)
+                                },
+
+                                unselectedColor =
+                                //SHOWING CORRECT ANSWER
+                                if (correctAnswerState.value == false
+                                    && index == choicesState.indexOf(question.answer)
+                                ) {
+                                    Color.Green.copy(alpha = 0.7f)
+                                } else {
+                                    Color.DarkGray
                                 }
                             )
                         ) //end of radiobutton
@@ -192,10 +216,23 @@ fun QuestionDisplay(
                                 style = SpanStyle(
                                     fontWeight = FontWeight.Light,
                                     color =
+                                    //if its correct ans and user selected it
+                                    //user selected bc 'green' to only single choice-text not all
                                     if (correctAnswerState.value == true && index == answerState.value) {
                                         Color.Green
-                                    } else if (correctAnswerState.value == false && index == answerState.value) {
+                                    }
+                                    //if answer is given wrong and the user selected it
+                                    //user selected bc it only red the text which user selected
+                                    else if (correctAnswerState.value == false && index == answerState.value) {
                                         Color.Red
+                                    }
+                                    //SHOWING CORRECT ANS
+                                    //if answer given by user is wrong and the index of choice is index of correct answer i.e. correct answer
+                                    else if (correctAnswerState.value == false && index == choicesState.indexOf(
+                                            question.answer
+                                        )
+                                    ) {
+                                        Color.Green
                                     } else {
                                         AppColors.mOffWhite
                                     }
@@ -229,13 +266,14 @@ fun QuestionDisplay(
     }
 }
 
+
 @Preview
 @Composable
-private fun ShowProgress(score: Int = 12) {
+private fun ShowProgress(score: MutableState<Int> = mutableStateOf(0), questionIndex: Int = 1) {
     val gradient = Brush.linearGradient(colors = listOf(Color(0xFFF95075), Color(0xFFBE6BE5)))
 
-    val progressFactor = remember{
-        score * 0.005f //tiny factor means more time to fill
+    val progressFactor = remember(questionIndex) {
+        questionIndex * 0.005f //tiny factor means more time to fill
     }
     Row(
         modifier = Modifier
@@ -243,7 +281,7 @@ private fun ShowProgress(score: Int = 12) {
             .fillMaxWidth()
             .height(45.dp)
             .border(
-                width = 4.dp,
+                width = 2.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
                         AppColors.mLightPurple,
@@ -277,12 +315,21 @@ private fun ShowProgress(score: Int = 12) {
                 backgroundColor = Color.Transparent,
                 disabledBackgroundColor = Color.Transparent
             )
-        ) {}
+        ) {
+            Text(
+                text = "${score.value}",
+                modifier = Modifier
+                    .fillMaxHeight(0.7f)
+                    .padding(2.dp),
+                color = AppColors.mOffWhite,
+                textAlign = TextAlign.Start
+            )
+        }
     }
 }
 
 @Composable
-fun QuestionTracker(counter: Int = 10, outOf: Int = 100) {
+fun QuestionTracker(counter: Int = 1, outOf: Int = 100) {
 
     Text(text = buildAnnotatedString {
         withStyle(style = ParagraphStyle(textIndent = TextIndent.None)) {
@@ -308,8 +355,9 @@ fun QuestionTracker(counter: Int = 10, outOf: Int = 100) {
     }, modifier = Modifier.padding(20.dp))
 }
 
+@Preview
 @Composable
-fun DrawDottedLine(pathEffect: PathEffect) {
+fun DrawDottedLine(pathEffect: PathEffect = PathEffect.dashPathEffect(floatArrayOf(50f,50f),0f)) {
     Canvas(modifier = Modifier
         .fillMaxWidth()
         .height(1.dp),
